@@ -23,26 +23,74 @@ typedef enum {
 
 extern const struct memp_desc* const memp_pools[MEMP_MAX];
 
-
 /**
  * Set to memory alignment supported by your platform
  */
 #define MEM_ALIGNMENT                   8
 
+#include "memp.h"
 
-#ifndef MEM_ALIGN_BUFFER
+#define MEMP_OVERFLOW_CHECK	0
+
+
+#define MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1U) & ~(MEM_ALIGNMENT-1U))
+
 #define MEM_ALIGN_BUFFER(size) (((size) + MEM_ALIGNMENT - 1U))
-#endif
 
 
-#define HELPER_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1U) & ~(MEM_ALIGNMENT-1U))
-
-#define MEMP_SIZE           0
-#define MEMP_ALIGN_SIZE(x) (HELPER_MEM_ALIGN_SIZE(x))
 
 #define MEM_ALIGN(addr) ((void *)(((uintptr_t)(addr) + MEM_ALIGNMENT - 1) & ~(uintptr_t)(MEM_ALIGNMENT-1)))
-
 #define DECLARE_MEMORY_ALIGNED(variable_name, size) uint8_t variable_name[MEM_ALIGN_BUFFER(size)]
+
+
+/** Get rid of alignment cast warnings (GCC -Wcast-align) */
+#define CONST_CAST(target_type, val) ((target_type)((ptrdiff_t)val))
+#define ALIGNMENT_CAST(target_type, val) CONST_CAST(target_type, val)
+
+
+#if MEMP_OVERFLOW_CHECK
+/* if MEMP_OVERFLOW_CHECK is turned on, we reserve some bytes at the beginning
+ * and at the end of each element, initialize them as 0xcd and check
+ * them later. */
+/* If MEMP_OVERFLOW_CHECK is >= 2, on every call to memp_malloc or memp_free,
+ * every single element in each pool is checked!
+ * This is VERY SLOW but also very helpful. */
+/* MEMP_SANITY_REGION_BEFORE and MEMP_SANITY_REGION_AFTER can be overridden in
+ * lwipopts.h to change the amount reserved for checking. */
+
+
+
+
+#define MEMP_SANITY_REGION_BEFORE  16
+#if MEMP_SANITY_REGION_BEFORE > 0
+#define MEMP_SANITY_REGION_BEFORE_ALIGNED    MEM_ALIGN_SIZE(MEMP_SANITY_REGION_BEFORE)
+#else
+#define MEMP_SANITY_REGION_BEFORE_ALIGNED    0
+#endif /* MEMP_SANITY_REGION_BEFORE*/
+
+#define MEMP_SANITY_REGION_AFTER   16
+
+#if MEMP_SANITY_REGION_AFTER > 0
+#define MEMP_SANITY_REGION_AFTER_ALIGNED     MEM_ALIGN_SIZE(MEMP_SANITY_REGION_AFTER)
+#else
+#define MEMP_SANITY_REGION_AFTER_ALIGNED     0
+#endif /* MEMP_SANITY_REGION_AFTER*/
+
+/* MEMP_SIZE: save space for struct memp and for sanity check */
+#define MEMP_SIZE          (MEM_ALIGN_SIZE(sizeof(struct memp)) + MEMP_SANITY_REGION_BEFORE_ALIGNED)
+#define MEMP_ALIGN_SIZE(x) (MEM_ALIGN_SIZE(x) + MEMP_SANITY_REGION_AFTER_ALIGNED)
+
+#else /* MEMP_OVERFLOW_CHECK */
+
+/* No sanity checks
+ * We don't need to preserve the struct memp while not allocated, so we
+ * can save a little space and set MEMP_SIZE to 0.
+ */
+#define MEMP_SIZE           0
+
+#define MEMP_ALIGN_SIZE(x) (MEM_ALIGN_SIZE(x))
+
+#endif
 
 
 #if MEMP_STATS
@@ -94,7 +142,7 @@ struct memp {
 
 /** Memory pool descriptor */
 struct memp_desc {
-#if defined(MEMP_DEBUG) || MEMP_OVERFLOW_CHECK || MEMP_STATS_DISPLAY
+#if defined(MEMP_OVERFLOW_CHECK)
   /** Textual description */
   const char *desc;
 #endif /* LWIP_DEBUG || MEMP_OVERFLOW_CHECK || LWIP_STATS_DISPLAY */
@@ -106,7 +154,6 @@ struct memp_desc {
   /** Element size */
   uint16_t size;
 
-#if !MEMP_MEM_MALLOC
   /** Number of elements */
   uint16_t num;
 
@@ -115,7 +162,6 @@ struct memp_desc {
 
   /** First free element of each pool. Elements form a linked list. */
   struct memp **tab;
-#endif /* MEMP_MEM_MALLOC */
 };
 
 /** This structure is used to save the pool one element came from.
@@ -123,9 +169,9 @@ struct memp_desc {
 struct memp_malloc_helper
 {
    memp_t poolnr;
-#if MEMP_OVERFLOW_CHECK || (LWIP_STATS && MEM_STATS)
-   u16_t size;
-#endif /* MEMP_OVERFLOW_CHECK || (LWIP_STATS && MEM_STATS) */
+#if MEMP_OVERFLOW_CHECK || MEM_STATS
+   uint16_t size;
+#endif /* MEMP_OVERFLOW_CHECK || MEM_STATS */
 };
 
 
@@ -150,8 +196,12 @@ void memp_init_pool(const struct memp_desc *desc);
 
 void memp_init(void);
 
+#if MEMP_OVERFLOW_CHECK
+void *memp_malloc_fn(memp_t type, const char* file, const int line);
+#define memp_malloc(t) memp_malloc_fn((t), __FILE__, __LINE__)
+#else
 void *memp_malloc(memp_t type);
-
+#endif
 void  memp_free(memp_t type, void *mem);
 
 
