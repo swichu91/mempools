@@ -40,14 +40,18 @@ void * mem_malloc(size_t size)
           continue;
         }
 #endif /* MEM_USE_POOLS_TRY_BIGGER_POOL */
+#if MEMP_LOG
         printf("mem_malloc(): No free memory!\n");
+#endif
         return NULL;
       }
       break;
     }
   }
   if (poolnr > MEMP_POOL_LAST) {
+#if MEMP_LOG
 	  printf("mem_malloc(): no pool is that big!\n");
+#endif
     return NULL;
   }
 
@@ -83,15 +87,15 @@ void mem_free(void *rmem)
   /* cast through void* to get rid of alignment warnings */
   hmem = (struct memp_malloc_helper*)(void*)((uint8_t*)rmem - MEMP_ALIGN_SIZE(sizeof(struct memp_malloc_helper)));
 
- // MEM_STATS_DEC_USED(used, hmem->size);
 #if MEMP_OVERFLOW_CHECK
   {
      uint16_t i;
-     //assert(hmem->size <= memp_pools[hmem->poolnr]->size,"MEM_USE_POOLS: invalid chunk size");
+     assert(hmem->size <= memp_pools[hmem->poolnr]->size && "MEM_USE_POOLS: invalid chunk size");
      /* check that unused memory remained untouched (diff between requested size and selected pool's size) */
      for (i = hmem->size; i < memp_pools[hmem->poolnr]->size; i++) {
         uint8_t data = *((uint8_t*)rmem + i);
-       // assert(data == 0xcd,"MEM_USE_POOLS: mem overflow detected");
+
+        assert(data == 0xcd && "mem overflow detected");
      }
   }
 #endif /* MEMP_OVERFLOW_CHECK */

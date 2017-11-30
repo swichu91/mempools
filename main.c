@@ -42,6 +42,10 @@ int main(void)
 	void* ptr = mem_malloc(1024);
 
 
+	//*(uint8_t*)((uint8_t*)ptr+1026) = 5;
+
+	void* ptr1 = mem_malloc(1024);
+
 	mem_free(ptr);
 
 

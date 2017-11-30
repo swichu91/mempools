@@ -40,9 +40,12 @@ memp_overflow_check_element_overflow(struct memp *p, const struct memp_desc *des
   m = (uint8_t*)p + MEMP_SIZE + desc->size;
   for (k = 0; k < MEMP_SANITY_REGION_AFTER_ALIGNED; k++) {
     if (m[k] != 0xcd) {
+#if MEMP_LOG
       char errstr[128] = "detected memp overflow in pool ";
-      strcat(errstr, desc->desc);
-      //TODO:assert (0,errstr);
+      printf(errstr,"%s %s",errstr,desc->desc);
+#endif
+      assert (0);
+
     }
   }
 #else /* MEMP_SANITY_REGION_AFTER_ALIGNED > 0 */
@@ -65,9 +68,11 @@ memp_overflow_check_element_underflow(struct memp *p, const struct memp_desc *de
   m = (uint8_t*)p + MEMP_SIZE - MEMP_SANITY_REGION_BEFORE_ALIGNED;
   for (k = 0; k < MEMP_SANITY_REGION_BEFORE_ALIGNED; k++) {
     if (m[k] != 0xcd) {
+#if MEMP_LOG
       char errstr[128] = "detected memp underflow in pool ";
-      strcat(errstr, desc->desc);
-      //TODO:LWIP_ASSERT(errstr, 0);
+      printf(errstr,"%s %s",errstr,desc->desc);
+#endif
+      assert (0);
     }
   }
 #else /* MEMP_SANITY_REGION_BEFORE_ALIGNED > 0 */
@@ -179,7 +184,9 @@ do_memp_malloc_pool_fn(const struct memp_desc *desc, const char* file, const int
     /* cast through u8_t* to get rid of alignment warnings */
     return ((uint8_t*)memp + MEMP_SIZE);
   } else {
-   //printf("memp_malloc: out of memory in pool %s\n", desc->desc);
+#if MEMP_LOG
+   printf("memp_malloc: out of memory in pool %s\n", desc->desc);
+#endif
 #if MEMP_STATS
     desc->stats->err++;
 #endif
@@ -282,17 +289,8 @@ void memp_free(memp_t type, void *mem)
   memp_overflow_check_all();
 #endif /* MEMP_OVERFLOW_CHECK >= 2 */
 
-#ifdef LWIP_HOOK_MEMP_AVAILABLE
-  old_first = *memp_pools[type]->tab;
-#endif
-
   do_memp_free_pool(memp_pools[type], mem);
 
-#ifdef LWIP_HOOK_MEMP_AVAILABLE
-  if (old_first == NULL) {
-    LWIP_HOOK_MEMP_AVAILABLE(type);
-  }
-#endif
 }
 
 

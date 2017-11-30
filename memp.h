@@ -23,30 +23,24 @@ typedef enum {
 
 extern const struct memp_desc* const memp_pools[MEMP_MAX];
 
+
 /**
  * Set to memory alignment supported by your platform
  */
 #define MEM_ALIGNMENT                   8
+#define MEMP_OVERFLOW_CHECK 1
+#define MEMP_LOG		1
 
-#include "memp.h"
-
-#define MEMP_OVERFLOW_CHECK	0
-
-
-#define MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1U) & ~(MEM_ALIGNMENT-1U))
-
+#ifndef MEM_ALIGN_BUFFER
 #define MEM_ALIGN_BUFFER(size) (((size) + MEM_ALIGNMENT - 1U))
+#endif
 
 
+#define HELPER_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1U) & ~(MEM_ALIGNMENT-1U))
 
 #define MEM_ALIGN(addr) ((void *)(((uintptr_t)(addr) + MEM_ALIGNMENT - 1) & ~(uintptr_t)(MEM_ALIGNMENT-1)))
+
 #define DECLARE_MEMORY_ALIGNED(variable_name, size) uint8_t variable_name[MEM_ALIGN_BUFFER(size)]
-
-
-/** Get rid of alignment cast warnings (GCC -Wcast-align) */
-#define CONST_CAST(target_type, val) ((target_type)((ptrdiff_t)val))
-#define ALIGNMENT_CAST(target_type, val) CONST_CAST(target_type, val)
-
 
 #if MEMP_OVERFLOW_CHECK
 /* if MEMP_OVERFLOW_CHECK is turned on, we reserve some bytes at the beginning
@@ -58,12 +52,9 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 /* MEMP_SANITY_REGION_BEFORE and MEMP_SANITY_REGION_AFTER can be overridden in
  * lwipopts.h to change the amount reserved for checking. */
 
-
-
-
 #define MEMP_SANITY_REGION_BEFORE  16
 #if MEMP_SANITY_REGION_BEFORE > 0
-#define MEMP_SANITY_REGION_BEFORE_ALIGNED    MEM_ALIGN_SIZE(MEMP_SANITY_REGION_BEFORE)
+#define MEMP_SANITY_REGION_BEFORE_ALIGNED    HELPER_MEM_ALIGN_SIZE(MEMP_SANITY_REGION_BEFORE)
 #else
 #define MEMP_SANITY_REGION_BEFORE_ALIGNED    0
 #endif /* MEMP_SANITY_REGION_BEFORE*/
@@ -71,14 +62,14 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #define MEMP_SANITY_REGION_AFTER   16
 
 #if MEMP_SANITY_REGION_AFTER > 0
-#define MEMP_SANITY_REGION_AFTER_ALIGNED     MEM_ALIGN_SIZE(MEMP_SANITY_REGION_AFTER)
+#define MEMP_SANITY_REGION_AFTER_ALIGNED     HELPER_MEM_ALIGN_SIZE(MEMP_SANITY_REGION_AFTER)
 #else
 #define MEMP_SANITY_REGION_AFTER_ALIGNED     0
 #endif /* MEMP_SANITY_REGION_AFTER*/
 
 /* MEMP_SIZE: save space for struct memp and for sanity check */
-#define MEMP_SIZE          (MEM_ALIGN_SIZE(sizeof(struct memp)) + MEMP_SANITY_REGION_BEFORE_ALIGNED)
-#define MEMP_ALIGN_SIZE(x) (MEM_ALIGN_SIZE(x) + MEMP_SANITY_REGION_AFTER_ALIGNED)
+#define MEMP_SIZE          (HELPER_MEM_ALIGN_SIZE(sizeof(struct memp)) + MEMP_SANITY_REGION_BEFORE_ALIGNED)
+#define MEMP_ALIGN_SIZE(x) (HELPER_MEM_ALIGN_SIZE(x) + MEMP_SANITY_REGION_AFTER_ALIGNED)
 
 #else /* MEMP_OVERFLOW_CHECK */
 
@@ -87,10 +78,10 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
  * can save a little space and set MEMP_SIZE to 0.
  */
 #define MEMP_SIZE           0
-
-#define MEMP_ALIGN_SIZE(x) (MEM_ALIGN_SIZE(x))
+#define MEMP_ALIGN_SIZE(x) (HELPER_MEM_ALIGN_SIZE(x))
 
 #endif
+
 
 
 #if MEMP_STATS
@@ -101,7 +92,7 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #define MEMPOOL_DECLARE_STATS_REFERENCE(name)
 #endif
 
-#if STATS_DISPLAY
+#if MEMP_LOG || MEMP_OVERFLOW_CHECK
 #define DECLARE_MEMPOOL_DESC(desc) (desc),
 #else
 #define DECLARE_MEMPOOL_DESC(desc)
@@ -142,10 +133,10 @@ struct memp {
 
 /** Memory pool descriptor */
 struct memp_desc {
-#if defined(MEMP_OVERFLOW_CHECK)
+#if MEMP_OVERFLOW_CHECK || MEMP_LOG
   /** Textual description */
   const char *desc;
-#endif /* LWIP_DEBUG || MEMP_OVERFLOW_CHECK || LWIP_STATS_DISPLAY */
+#endif /* MEMP_OVERFLOW_CHECK || MEM_LOG */
 #if MEMP_STATS
   /** Statistics */
   struct stats_mem *stats;
@@ -154,6 +145,7 @@ struct memp_desc {
   /** Element size */
   uint16_t size;
 
+#if !MEMP_MEM_MALLOC
   /** Number of elements */
   uint16_t num;
 
@@ -162,6 +154,7 @@ struct memp_desc {
 
   /** First free element of each pool. Elements form a linked list. */
   struct memp **tab;
+#endif /* MEMP_MEM_MALLOC */
 };
 
 /** This structure is used to save the pool one element came from.
@@ -203,6 +196,7 @@ void *memp_malloc_fn(memp_t type, const char* file, const int line);
 void *memp_malloc(memp_t type);
 #endif
 void  memp_free(memp_t type, void *mem);
+
 
 
 #endif /* MEMP_H_ */
