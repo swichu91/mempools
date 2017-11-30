@@ -30,7 +30,7 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #define MEM_ALIGNMENT                   1
 #define MEMP_OVERFLOW_CHECK 1
 #define MEMP_LOG		0
-#define MEMP_STATS	0
+#define MEMP_STATS	1
 
 #ifndef MEM_ALIGN_BUFFER
 #define MEM_ALIGN_BUFFER(size) (((size) + MEM_ALIGNMENT - 1U))
@@ -53,7 +53,7 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 /* MEMP_SANITY_REGION_BEFORE and MEMP_SANITY_REGION_AFTER can be overridden in
  * lwipopts.h to change the amount reserved for checking. */
 
-#define MEMP_SANITY_REGION_BEFORE  16
+#define MEMP_SANITY_REGION_BEFORE  0
 #if MEMP_SANITY_REGION_BEFORE > 0
 #define MEMP_SANITY_REGION_BEFORE_ALIGNED    HELPER_MEM_ALIGN_SIZE(MEMP_SANITY_REGION_BEFORE)
 #else
@@ -69,8 +69,9 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #endif /* MEMP_SANITY_REGION_AFTER*/
 
 /* MEMP_SIZE: save space for struct memp and for sanity check */
-#define MEMP_SIZE          (HELPER_MEM_ALIGN_SIZE(sizeof(struct memp)) + MEMP_SANITY_REGION_BEFORE_ALIGNED)
-#define MEMP_ALIGN_SIZE(x) (HELPER_MEM_ALIGN_SIZE(x) + MEMP_SANITY_REGION_AFTER_ALIGNED)
+/*#define MEMP_SIZE          (HELPER_MEM_ALIGN_SIZE(sizeof(struct memp)) + )*/
+#define MEMP_SIZE           MEMP_SANITY_REGION_AFTER_ALIGNED
+#define MEMP_ALIGN_SIZE(x) (HELPER_MEM_ALIGN_SIZE(x))
 
 #else /* MEMP_OVERFLOW_CHECK */
 
@@ -138,7 +139,7 @@ struct stats_mem {
 
 struct memp {
   struct memp *next;
-#if MEMP_OVERFLOW_CHECK
+#if MEMP_OVERFLOW_CHECK && MEMP_LOG
   const char *file;
   int line;
 #endif /* MEMP_OVERFLOW_CHECK */

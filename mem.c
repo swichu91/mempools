@@ -67,7 +67,7 @@ void * mem_malloc(size_t size)
 #endif /* MEMP_OVERFLOW_CHECK || MEM_STATS */
 #if MEMP_OVERFLOW_CHECK
   /* initialize unused memory (diff between requested size and selected pool's size) */
-  memset((uint8_t*)ret + size, 0xcd, memp_pools[poolnr]->size - size);
+  memset((uint8_t*)element + required_size, 0xcd, memp_pools[poolnr]->size - required_size);
 #endif /* MEMP_OVERFLOW_CHECK */
   return ret;
 }
@@ -92,7 +92,7 @@ void mem_free(void *rmem)
      uint16_t i;
      assert(hmem->size <= memp_pools[hmem->poolnr]->size && "MEM_USE_POOLS: invalid chunk size");
      /* check that unused memory remained untouched (diff between requested size and selected pool's size) */
-     for (i = hmem->size; i < memp_pools[hmem->poolnr]->size; i++) {
+     for (i = hmem->size + MEMP_ALIGN_SIZE(sizeof(struct memp_malloc_helper)); i < memp_pools[hmem->poolnr]->size; i++) {
         uint8_t data = *((uint8_t*)rmem + i);
 
         assert(data == 0xcd && "mem overflow detected");
