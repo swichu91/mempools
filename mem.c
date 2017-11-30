@@ -103,3 +103,21 @@ void mem_free(void *rmem)
   /* and put it in the pool we saved earlier */
   memp_free(hmem->poolnr, hmem);
 }
+
+void mem_pool_stats_display(void)
+{
+
+#if MEMP_STATS
+	memp_t poolnr;
+	for (poolnr = MEMP_POOL_FIRST; poolnr <= MEMP_POOL_LAST; poolnr = (memp_t)(poolnr + 1)){
+
+		  printf("\nMEM %s\n\t", memp_pools[poolnr]->stats->name);
+		  printf("avail: %u \n\t", (uint32_t)memp_pools[poolnr]->stats->avail);
+		  printf("used: %u \n\t", (uint32_t)memp_pools[poolnr]->stats->used);
+		  printf("max: %u \n\t", (uint32_t)memp_pools[poolnr]->stats->max);
+		  printf("err: %u \n", (uint32_t)memp_pools[poolnr]->stats->err);
+	}
+#endif
+
+
+}

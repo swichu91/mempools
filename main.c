@@ -37,18 +37,23 @@ void __wrap_free(void *ptr)
 int main(void)
 {
 
+
+	uint8_t s = MEMP_ALIGN_SIZE(16);
+
 	memp_init();
 
-	void* ptr = mem_malloc(1024);
+	void* ptr = mem_malloc(16);
 
 
 	//*(uint8_t*)((uint8_t*)ptr+1026) = 5;
 
-	void* ptr1 = mem_malloc(1024);
+	void* ptr1 = mem_malloc(16);
 
 	mem_free(ptr);
+	mem_free(ptr1);
 
-
+	mem_pool_stats_display();
+	fflush(stdout);
 	printf("hello\n");
 
 	return 0;

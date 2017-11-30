@@ -232,10 +232,6 @@ void memp_init(void)
   /* for every pool: */
   for (i = 0; i < ARRAYSIZE(memp_pools); i++) {
     memp_init_pool(memp_pools[i]);
-
-#if MEMP_STATS
-    lwip_stats.memp[i] = memp_pools[i]->stats;
-#endif
   }
 
 #if MEMP_OVERFLOW_CHECK >= 2

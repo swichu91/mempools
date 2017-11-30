@@ -24,3 +24,9 @@ void mem_free(void *rmem);
  * @return a pointer to the allocated memory or NULL if the pool is empty
  */
 void * mem_malloc(size_t size);
+
+
+/**
+ * Display memory stats from all allocated memory pools in
+ */
+void mem_pool_stats_display(void);

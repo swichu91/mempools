@@ -27,9 +27,10 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 /**
  * Set to memory alignment supported by your platform
  */
-#define MEM_ALIGNMENT                   8
+#define MEM_ALIGNMENT                   1
 #define MEMP_OVERFLOW_CHECK 1
-#define MEMP_LOG		1
+#define MEMP_LOG		0
+#define MEMP_STATS	0
 
 #ifndef MEM_ALIGN_BUFFER
 #define MEM_ALIGN_BUFFER(size) (((size) + MEM_ALIGNMENT - 1U))
@@ -92,7 +93,7 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #define MEMPOOL_DECLARE_STATS_REFERENCE(name)
 #endif
 
-#if MEMP_LOG || MEMP_OVERFLOW_CHECK
+#if MEMP_LOG || MEMP_OVERFLOW_CHECK || MEMP_STATS
 #define DECLARE_MEMPOOL_DESC(desc) (desc),
 #else
 #define DECLARE_MEMPOOL_DESC(desc)
@@ -123,6 +124,18 @@ typedef enum {
 #define MEMP_POOL_FIRST ((memp_t) MEMP_POOL_HELPER_FIRST)
 #define MEMP_POOL_LAST   ((memp_t) MEMP_POOL_HELPER_LAST)
 
+
+struct stats_mem {
+#if MEMP_STATS
+  const char *name;
+#endif /* MEMP_STATS*/
+  uint32_t err;
+  uint32_t avail;
+  uint32_t used;
+  uint32_t max;
+  uint32_t illegal;
+};
+
 struct memp {
   struct memp *next;
 #if MEMP_OVERFLOW_CHECK
@@ -133,7 +146,7 @@ struct memp {
 
 /** Memory pool descriptor */
 struct memp_desc {
-#if MEMP_OVERFLOW_CHECK || MEMP_LOG
+#if MEMP_OVERFLOW_CHECK || MEMP_LOG || MEMP_STATS
   /** Textual description */
   const char *desc;
 #endif /* MEMP_OVERFLOW_CHECK || MEM_LOG */
