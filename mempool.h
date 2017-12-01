@@ -5,7 +5,6 @@
  *      Author: mati
  */
 
-
 /**
  * Free memory previously allocated by mem_malloc. Loads the pool number
  * and calls memp_free with that pool number to put the element back into
@@ -13,8 +12,8 @@
  *
  * @param rmem the memory element to free
  */
-void mem_free(void *rmem);
-
+void
+mempool_free (void *rmem);
 
 /**
  * Allocate memory: determine the smallest pool that is big enough
@@ -23,10 +22,11 @@ void mem_free(void *rmem);
  * @param size the size in bytes of the memory needed
  * @return a pointer to the allocated memory or NULL if the pool is empty
  */
-void * mem_malloc(size_t size);
-
+void *
+mempool_malloc (size_t size);
 
 /**
  * Display memory stats from all allocated memory pools in
  */
-void mem_pool_stats_display(void);
+void
+mempool_stats_display (void);
