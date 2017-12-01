@@ -36,16 +36,6 @@ void __wrap_free(void *ptr)
 
 int main(void)
 {
-
-
-	void* ptr = malloc(1000);
-
-	void* ptr1 = malloc(17);
-
-
-	free(ptr1);
-
-
 	mempool_stats_display();
 	fflush(stdout);
 	printf("hello\n");

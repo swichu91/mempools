@@ -9,6 +9,7 @@
 #define MEMP_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 /* run once with empty definition to handle all custom includes in pools.h */
 #define MEMPOOL(name,num,size,desc)
@@ -28,7 +29,7 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
  * Set to memory alignment supported by your platform
  */
 #define MEM_ALIGNMENT                   1
-#define MEMP_OVERFLOW_CHECK 1
+#define MEMP_OVERFLOW_CHECK 2
 #define MEMP_LOG		0
 #define MEMP_STATS	1
 
@@ -37,6 +38,12 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #endif
 
 
+#define CONST_CAST(target_type, val) ((target_type)((ptrdiff_t)val))
+
+
+/** Get rid of alignment cast warnings (GCC -Wcast-align) */
+#define ALIGNMENT_CAST(target_type, val) CONST_CAST(target_type, val)
+
 #define HELPER_MEM_ALIGN_SIZE(size) (((size) + MEM_ALIGNMENT - 1U) & ~(MEM_ALIGNMENT-1U))
 
 #define MEM_ALIGN(addr) ((void *)(((uintptr_t)(addr) + MEM_ALIGNMENT - 1) & ~(uintptr_t)(MEM_ALIGNMENT-1)))
@@ -44,14 +51,13 @@ extern const struct memp_desc* const memp_pools[MEMP_MAX];
 #define DECLARE_MEMORY_ALIGNED(variable_name, size) uint8_t variable_name[MEM_ALIGN_BUFFER(size)]
 
 #if MEMP_OVERFLOW_CHECK
-/* if MEMP_OVERFLOW_CHECK is turned on, we reserve some bytes at the beginning
- * and at the end of each element, initialize them as 0xcd and check
+/** if MEMP_OVERFLOW_CHECK is turned on, we reserve some bytes TODO:(at the beginning
+ * and) at the end of each element, initialize them as 0xcd and check
  * them later. */
-/* If MEMP_OVERFLOW_CHECK is >= 2, on every call to memp_malloc or memp_free,
+
+/** If MEMP_OVERFLOW_CHECK is >= 2, on every call to memp_malloc or memp_free,
  * every single element in each pool is checked!
  * This is VERY SLOW but also very helpful. */
-/* MEMP_SANITY_REGION_BEFORE and MEMP_SANITY_REGION_AFTER can be overridden in
- * lwipopts.h to change the amount reserved for checking. */
 
 #define MEMP_SANITY_REGION_BEFORE  0
 #if MEMP_SANITY_REGION_BEFORE > 0
@@ -157,7 +163,7 @@ struct memp_desc {
 #endif
 
   /** Element size */
-  uint16_t size;
+  size_t size;
 
 #if !MEMP_MEM_MALLOC
   /** Number of elements */
@@ -177,7 +183,7 @@ struct memp_malloc_helper
 {
    memp_t poolnr;
 #if MEMP_OVERFLOW_CHECK || MEM_STATS
-   uint16_t size;
+   size_t size;
 #endif /* MEMP_OVERFLOW_CHECK || MEM_STATS */
 };
 
@@ -198,17 +204,35 @@ struct memp_malloc_helper
     &memp_tab_ ## name \
   };
 
-
+/**
+ * Init memory pool
+ * @param desc
+ */
 void memp_init_pool(const struct memp_desc *desc);
 
+/**
+ * Init memory pools
+ */
 void memp_init(void);
 
+/**
+ * Allocate memory pool
+ * @param type
+ * @param file
+ * @param line
+ */
 #if MEMP_OVERFLOW_CHECK
 void *memp_malloc_fn(memp_t type, const char* file, const int line);
 #define memp_malloc(t) memp_malloc_fn((t), __FILE__, __LINE__)
 #else
 void *memp_malloc(memp_t type);
 #endif
+
+/**
+ * Free memory pool
+ * @param type
+ * @param mem
+ */
 void  memp_free(memp_t type, void *mem);
 
 
